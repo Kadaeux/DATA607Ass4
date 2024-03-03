@@ -27,7 +27,7 @@ library(dplyr)
 I added na.strings parameter so that I can use is.na to find missing data and empty rows.
 
 ```{r get-data}
-airlines <- read.csv("data/ass4.csv", na.strings=c("","NA"))
+airlines <- read.csv("https://raw.githubusercontent.com/Kadaeux/DATA607Ass4/master/ass4.csv", na.strings=c("","NA"))
 head(airlines)
 ```
 
