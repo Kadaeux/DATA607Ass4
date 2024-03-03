@@ -110,7 +110,7 @@ head(airlinesTotals)
 
 We can see here that AM West has a better on time percentage. If we wanted to analyze it by city, we can do the same function and simply group by Airline + city.
 
-```{r analyze-3}
+```{r analyze-4}
 airlinesTotals <- airlines %>% group_by(Airline,City) %>% summarise(across(delayed:`on time`, sum),
                                                                  On_Time_Percentage = (`on time`/(`on time`+delayed)))
 head(airlinesTotals)
