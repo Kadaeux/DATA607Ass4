@@ -1,0 +1,119 @@
+---
+title: "DATA607 Assignment 4"
+author: "Nicholas Kunze"
+output:
+  html_document:
+    highlight: pygments
+    theme: cerulean
+    toc: true
+    toc_float: true
+  pdf_document: default
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+if("tidyverse" %in% rownames(installed.packages()) == FALSE) {install.packages("tidyverse")}
+library(tidyverse)
+if("dplyr" %in% rownames(installed.packages()) == FALSE) {install.packages("dplyr")}
+library(dplyr)
+```
+
+## Overview
+
+## Data Retrieval
+
+I added na.strings parameter so that I can use is.na to find missing data and empty rows.
+
+```{r get-data}
+airlines <- read.csv("data/ass4.csv", na.strings=c("","NA"))
+head(airlines)
+```
+
+## Data Tidying
+
+There are three interrelated rules that make a dataset tidy:
+
+1.  Each variable is a column; each column is a variable.
+
+2.  Each observation is a row; each row is an observation.
+
+3.  Each value is a cell; each cell is a single value.
+
+Our dataset has a lot of tidying to meet these standards. Our variables are Airline, City, Delayed Count, and On-Time Count. Each row should be an observation of all of these variables. Example of ideal observation for this data:
+
+| Airline | City        | Delayed_Count | On_Time_Count |
+|---------|-------------|---------------|---------------|
+| ALASKA  | Log.Angeles | 62            | 497           |
+
+So, we'll need to parse and tidy up this old dataframe and transform it into our expected tidy dataframe.
+
+```{r header-rename}
+names(airlines)[1] <- "Airline"
+names(airlines)[2] <- "On_Time_Status"
+head(airlines)
+```
+
+Then we'll remove the rows with ALL NA.
+
+```{r space-to-na}
+airlines <- airlines[rowSums(is.na(airlines)) != ncol(airlines),]
+head(airlines)
+```
+
+We are missing the airline name for delayed departures, as the original dataset had it implicit based on previous row. Let's add that in using fill, specifying to use previous row's value.
+
+```{r delayed-airline-add}
+airlines <- airlines %>% fill(Airline, .direction = "down")
+head(airlines)
+```
+
+Looking better already! Now let's gather these non-variable columns representing cities into a new City column. 
+
+```{r gather-cities}
+airlines <- airlines %>% pivot_longer(cols=colnames(airlines[3:length(airlines)]),names_to = "City", values_to = "Flight_Count")
+head(airlines)
+```
+
+Almost there... we need to spread the on_time_status column values (On Time and Delayed) to their own columns, containing the values from Flight_Count.
+
+```{r spread-status}
+airlines <- airlines %>% spread(key = On_Time_Status, value = Flight_Count)
+head(airlines)
+```
+
+## Data Analysis
+
+Now that we've got a nice little tidy dataset, we can go about using it for analyzing these airlines' performance.
+
+```{r analyze-1}
+airlinesTotals <- setNames(aggregate(cbind(airlines$delayed,airlines$`on time`),by=list(Airline=airlines$Airline),FUN=sum), c("Airline","delayed","on time"))
+
+head(airlinesTotals)
+```
+
+We can also do this using dplyr.
+
+```{r analyze-2}
+airlinesTotals <- airlines %>% group_by(Airline) %>% summarise(across(delayed:`on time`, sum))
+head(airlinesTotals)
+```
+
+However, we should probably care about getting numbers like what percentage of flights were on time. Luckily, dplyr makes this easy using the same function we used to sum our delayed and on time flight counts.
+
+```{r analyze-3}
+airlinesTotals <- airlines %>% group_by(Airline) %>% summarise(across(delayed:`on time`, sum),
+                                                                 On_Time_Percentage = (`on time`/(`on time`+delayed)))
+head(airlinesTotals)
+```
+
+We can see here that AM West has a better on time percentage. If we wanted to analyze it by city, we can do the same function and simply group by Airline + city.
+
+```{r analyze-3}
+airlinesTotals <- airlines %>% group_by(Airline,City) %>% summarise(across(delayed:`on time`, sum),
+                                                                 On_Time_Percentage = (`on time`/(`on time`+delayed)))
+head(airlinesTotals)
+```
+
+Here we can see that while AM West has a better on time percentage as a whole, it tends to vary based on destination(?) city. 
