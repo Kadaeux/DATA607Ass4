@@ -22,6 +22,8 @@ library(dplyr)
 
 ## Overview
 
+In this assignment, I go over untidy data concerning two airlines on-time data for multiple cities, tidy it, and then analyze it using tidyr and dplyr.
+
 ## Data Retrieval
 
 I added na.strings parameter so that I can use is.na to find missing data and empty rows.
